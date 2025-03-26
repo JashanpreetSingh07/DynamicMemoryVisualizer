@@ -52,6 +52,10 @@ class DynamicMemoryVisualizerApp:
     def create_paging_frame(self):
         self.paging_frame = tk.Frame(self.main_frame)
         # Input: Number of Frames
+        # In frontend/main_ui.py inside create_paging_frame()
+        self.canvas = tk.Canvas(self.paging_frame, width=400, height=100, bg="white")
+        self.canvas.grid(row=7, column=0, columnspan=2, pady=5)
+
         tk.Label(self.paging_frame, text="Number of Frames:").grid(row=0, column=0, padx=5, pady=5, sticky="e")
         self.frames_entry = tk.Entry(self.paging_frame)
         self.frames_entry.grid(row=0, column=1, padx=5, pady=5)
@@ -101,6 +105,7 @@ class DynamicMemoryVisualizerApp:
             status += f"Total faults: {self.paging_simulator.page_faults}."
             self.paging_status.config(text="Status: " + status)
             self.frames_display.config(text="Frames: " + str(self.paging_simulator.frames))
+            self.update_canvas()
         except Exception as e:
             messagebox.showerror("Error", str(e))
     
@@ -109,6 +114,7 @@ class DynamicMemoryVisualizerApp:
             self.paging_simulator.reset()
             self.paging_status.config(text="Status: Reset done.")
             self.frames_display.config(text="Frames: " + str(self.paging_simulator.frames))
+            self.update_canvas()
     
     # ----------------- Segmentation Frame -----------------
     def create_segmentation_frame(self):
@@ -171,8 +177,80 @@ class DynamicMemoryVisualizerApp:
             self.segments_display.config(text="Segments: " + str(self.segmentation_simulator.segments))
         except Exception as e:
             messagebox.showerror("Error", str(e))
-    
+
+    def update_vm_canvas(self):
+    # Clear the canvas
+        self.vm_canvas.delete("all")
+        if not self.virtual_simulator:
+            return
+
+    # Retrieve the physical memory state
+        frames = self.virtual_simulator.physical_memory
+        num_frames = len(frames)
+        canvas_width = 400
+        rect_width = canvas_width // num_frames
+
+    # Draw each frame as a colored rectangle
+        for i, vpage in enumerate(frames):
+            x0 = i * rect_width + 5
+            y0 = 20
+            x1 = (i + 1) * rect_width - 5
+            y1 = 100
+            self.vm_canvas.create_rectangle(x0, y0, x1, y1, fill="lightgreen", outline="black")
+        
+        # Show the virtual page number if available
+            display_text = str(vpage) if vpage is not None else ""
+            self.vm_canvas.create_text((x0 + x1) / 2, (y0 + y1) / 2, text=display_text, font=("Arial", 14, "bold"))
+
+    def update_canvas(self):
+    # Clear the canvas
+        self.canvas.delete("all")
+        if not self.paging_simulator:
+            return
+
+        frames = self.paging_simulator.frames
+        num_frames = len(frames)
+        canvas_width = 400
+        rect_width = canvas_width // num_frames
+
+        for i, page in enumerate(frames):
+            x0 = i * rect_width + 5
+            y0 = 20
+            x1 = (i + 1) * rect_width - 5
+            y1 = 80
+        # Draw rectangle for each frame
+            self.canvas.create_rectangle(x0, y0, x1, y1, fill="lightblue", outline="black")
+        # Draw text (page number) inside the rectangle
+            display_text = str(page) if page is not None else ""
+            self.canvas.create_text((x0 + x1) / 2, (y0 + y1) / 2, text=display_text, font=("Arial", 14))
+
     # --------------- Virtual Memory Frame ---------------
+    # def create_virtual_memory_frame(self):
+    #     self.virtual_frame = tk.Frame(self.main_frame)
+    #     # Input: Number of Frames for physical memory
+    #     tk.Label(self.virtual_frame, text="Number of Frames (Physical Memory):").grid(row=0, column=0, padx=5, pady=5, sticky="e")
+    #     self.vm_frames_entry = tk.Entry(self.virtual_frame)
+    #     self.vm_frames_entry.grid(row=0, column=1, padx=5, pady=5)
+    #     self.vm_frames_entry.insert(0, "4")
+        
+    #     # Input: Virtual Page to Access
+    #     tk.Label(self.virtual_frame, text="Virtual Page to Access:").grid(row=1, column=0, padx=5, pady=5, sticky="e")
+    #     self.virtual_page_entry = tk.Entry(self.virtual_frame)
+    #     self.virtual_page_entry.grid(row=1, column=1, padx=5, pady=5)
+        
+    #     # Button to access virtual page
+    #     self.vm_access_button = tk.Button(self.virtual_frame, text="Access Virtual Page", command=self.access_virtual_page)
+    #     self.vm_access_button.grid(row=2, column=0, columnspan=2, pady=5)
+        
+    #     # Status display
+    #     self.virtual_status = tk.Label(self.virtual_frame, text="Status: ")
+    #     self.virtual_status.grid(row=3, column=0, columnspan=2, pady=5)
+        
+    #     # Physical memory display
+    #     self.virtual_display = tk.Label(self.virtual_frame, text="Physical Memory: []")
+    #     self.virtual_display.grid(row=4, column=0, columnspan=2, pady=5)
+        
+    #     self.virtual_simulator = None
     def create_virtual_memory_frame(self):
         self.virtual_frame = tk.Frame(self.main_frame)
         # Input: Number of Frames for physical memory
@@ -180,26 +258,30 @@ class DynamicMemoryVisualizerApp:
         self.vm_frames_entry = tk.Entry(self.virtual_frame)
         self.vm_frames_entry.grid(row=0, column=1, padx=5, pady=5)
         self.vm_frames_entry.insert(0, "4")
-        
+
         # Input: Virtual Page to Access
         tk.Label(self.virtual_frame, text="Virtual Page to Access:").grid(row=1, column=0, padx=5, pady=5, sticky="e")
         self.virtual_page_entry = tk.Entry(self.virtual_frame)
         self.virtual_page_entry.grid(row=1, column=1, padx=5, pady=5)
-        
+
         # Button to access virtual page
         self.vm_access_button = tk.Button(self.virtual_frame, text="Access Virtual Page", command=self.access_virtual_page)
         self.vm_access_button.grid(row=2, column=0, columnspan=2, pady=5)
-        
+
         # Status display
         self.virtual_status = tk.Label(self.virtual_frame, text="Status: ")
         self.virtual_status.grid(row=3, column=0, columnspan=2, pady=5)
-        
-        # Physical memory display
+
+        # Physical memory display (textual)
         self.virtual_display = tk.Label(self.virtual_frame, text="Physical Memory: []")
         self.virtual_display.grid(row=4, column=0, columnspan=2, pady=5)
-        
+
+        # **New Canvas for Graphical Visualization**
+        self.vm_canvas = tk.Canvas(self.virtual_frame, width=400, height=120, bg="white")
+        self.vm_canvas.grid(row=5, column=0, columnspan=2, pady=10)
+
         self.virtual_simulator = None
-    
+
     def access_virtual_page(self):
         try:
             num_frames = int(self.vm_frames_entry.get())
@@ -212,6 +294,7 @@ class DynamicMemoryVisualizerApp:
             status += f"Total faults: {self.virtual_simulator.page_faults}."
             self.virtual_status.config(text="Status: " + status)
             self.virtual_display.config(text="Physical Memory: " + str(self.virtual_simulator.physical_memory))
+            self.update_vm_canvas()
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
