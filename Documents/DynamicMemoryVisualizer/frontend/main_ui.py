@@ -16,7 +16,7 @@ class DynamicMemoryVisualizerApp:
         
         tk.Label(frame_top, text="Select Simulation Type: ").pack(side=tk.LEFT)
         self.sim_type_combo = ttk.Combobox(frame_top, textvariable=self.simulation_type, 
-                                           values=["Paging", "Segmentation", "Virtual Memory"], state="readonly")
+                                           values=["Paging", "Segmentation"], state="readonly")
         self.sim_type_combo.pack(side=tk.LEFT)
         self.sim_type_combo.bind("<<ComboboxSelected>>", self.on_simulation_change)
         
@@ -149,8 +149,38 @@ class DynamicMemoryVisualizerApp:
         self.segments_display = tk.Label(self.segmentation_frame, text="Segments: []")
         self.segments_display.grid(row=6, column=0, columnspan=2, pady=5)
         
+        # Add Canvas for graphical visualization of segmentation
+        self.seg_canvas = tk.Canvas(self.segmentation_frame, width=400, height=100, bg="white")
+        self.seg_canvas.grid(row=7, column=0, columnspan=2, pady=10)
         self.segmentation_simulator = None
     
+    def update_segmentation_canvas(self):
+    # Clear the canvas
+        self.seg_canvas.delete("all")
+    
+        if self.segmentation_simulator is None:
+            return
+
+        total_memory = self.segmentation_simulator.total_memory
+        canvas_width = 400
+        canvas_height = 100
+
+    # Draw a background rectangle representing the total memory
+        self.seg_canvas.create_rectangle(5, 20, canvas_width-5, canvas_height-20, outline="black", fill="lightgrey")
+    
+    # Sort segments by their start address to draw in order
+        segments = sorted(self.segmentation_simulator.segments, key=lambda x: x[0])
+    
+        for seg in segments:
+            start, size, label = seg
+        # Calculate x coordinates relative to the total memory
+            x0 = 5 + (start / total_memory) * (canvas_width - 10)
+            x1 = 5 + ((start + size) / total_memory) * (canvas_width - 10)
+        # Draw the segment as a rectangle with a distinct color
+            self.seg_canvas.create_rectangle(x0, 20, x1, canvas_height-20, fill="lightblue", outline="black")
+        # Place the segment's label in the middle of the rectangle
+            self.seg_canvas.create_text((x0+x1)/2, canvas_height/2, text=label, font=("Arial", 12, "bold"))
+
     def allocate_segment(self):
         try:
             total_memory = int(self.total_memory_entry.get())
@@ -162,6 +192,7 @@ class DynamicMemoryVisualizerApp:
             status = f"Segment '{label}' allocated." if success else "Allocation failed. Not enough memory."
             self.segmentation_status.config(text="Status: " + status)
             self.segments_display.config(text="Segments: " + str(self.segmentation_simulator.segments))
+            self.update_segmentation_canvas()
         except Exception as e:
             messagebox.showerror("Error", str(e))
     
@@ -175,6 +206,7 @@ class DynamicMemoryVisualizerApp:
             status = f"Segment '{label}' freed." if success else "Segment not found."
             self.segmentation_status.config(text="Status: " + status)
             self.segments_display.config(text="Segments: " + str(self.segmentation_simulator.segments))
+            self.update_segmentation_canvas()
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
